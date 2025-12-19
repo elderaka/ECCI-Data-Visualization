@@ -19,6 +19,7 @@ PMTiles/*.pmtiles
 
 # Tippecanoe build directory
 tippecanoe-*/
+PMTiles/
 
 # Documentation files
 *.md
