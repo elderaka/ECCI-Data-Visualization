@@ -1,0 +1,2 @@
+// Placeholder - user will need to save their nebula image as:
+// Frontend/public/nebula-background.png

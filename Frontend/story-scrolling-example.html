@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Story Scrolling Example</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: white;
+    }
+
+    #map {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      z-index: 0;
+    }
+
+    .story-content {
+      position: relative;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .story-section {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    .story-panel {
+      max-width: 600px;
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(10px);
+      padding: 3rem;
+      border-radius: 1rem;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      pointer-events: auto;
+      margin-left: 4rem;
+    }
+
+    .story-panel h2 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: #3b82f6;
+    }
+
+    .story-panel p {
+      font-size: 1.125rem;
+      line-height: 1.8;
+      color: #cbd5e1;
+      margin-bottom: 1rem;
+    }
+
+    .story-panel .stat {
+      display: inline-block;
+      background: #1e40af;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      margin: 0.5rem 0.5rem 0.5rem 0;
+      font-weight: 600;
+    }
+
+    /* Alternate panel positions */
+    .story-section:nth-child(even) .story-panel {
+      margin-left: auto;
+      margin-right: 4rem;
+    }
+
+    /* Intro/Outro sections */
+    .intro-section, .outro-section {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .intro-panel, .outro-panel {
+      max-width: 800px;
+      padding: 4rem;
+    }
+
+    .intro-panel h1 {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #3b82f6, #10b981);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .intro-panel .subtitle {
+      font-size: 1.5rem;
+      color: #94a3b8;
+      margin-bottom: 2rem;
+    }
+
+    .scroll-indicator {
+      margin-top: 3rem;
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(10px); }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .story-panel {
+        margin-left: 1rem;
+        margin-right: 1rem;
+        padding: 2rem;
+      }
+
+      .story-section:nth-child(even) .story-panel {
+        margin-left: 1rem;
+        margin-right: 1rem;
+      }
+
+      .story-panel h2 {
+        font-size: 2rem;
+      }
+
+      .intro-panel h1 {
+        font-size: 2.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <div class="story-content">
+    <!-- Intro -->
+    <section class="intro-section">
+      <div class="intro-panel">
+        <h1>A Journey Through Data</h1>
+        <p class="subtitle">Exploring geographic insights across the UK</p>
+        <div class="scroll-indicator">
+          <p>↓ Scroll to begin ↓</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Story sections - these will trigger camera movements -->
+    <section class="story-section">
+      <div class="story-panel">
+        <h2>The United Kingdom</h2>
+        <p>
+          Our journey begins with a bird's eye view of the entire United Kingdom,
+          home to over 67 million people across four nations.
+        </p>
+        <div class="stat">4 Nations</div>
+        <div class="stat">67M People</div>
+        <div class="stat">243,610 km²</div>
+      </div>
+    </section>
+
+    <section class="story-section">
+      <div class="story-panel">
+        <h2>Scotland</h2>
+        <p>
+          Let's zoom into Scotland, known for its rugged highlands and rich history.
+          With a population of 5.5 million, it covers the northern third of Great Britain.
+        </p>
+        <div class="stat">5.5M People</div>
+        <div class="stat">32 Councils</div>
+        <div class="stat">78,782 km²</div>
+      </div>
+    </section>
+
+    <section class="story-section">
+      <div class="story-panel">
+        <h2>Glasgow Region</h2>
+        <p>
+          Moving closer to Glasgow, Scotland's largest city and a major economic hub.
+          The Greater Glasgow area is home to over 1 million residents.
+        </p>
+        <div class="stat">1M+ People</div>
+        <div class="stat">Economic Hub</div>
+        <div class="stat">175 km²</div>
+      </div>
+    </section>
+
+    <section class="story-section">
+      <div class="story-panel">
+        <h2>Neighborhood Detail</h2>
+        <p>
+          At the neighborhood level, we can see individual small areas that make up
+          the city. Each area tells its own story through the data.
+        </p>
+        <p>
+          This granular view allows us to understand local patterns, demographics,
+          and community characteristics in detail.
+        </p>
+      </div>
+    </section>
+
+    <section class="story-section">
+      <div class="story-panel">
+        <h2>Rotating Perspective</h2>
+        <p>
+          By rotating and tilting our view, we gain new perspectives on the same data.
+          Different angles reveal different insights.
+        </p>
+        <p>
+          This cinematic approach makes data exploration more engaging and memorable.
+        </p>
+      </div>
+    </section>
+
+    <!-- Outro -->
+    <section class="outro-section">
+      <div class="outro-panel">
+        <h2>The End</h2>
+        <p>Thank you for joining this journey through UK geographic data.</p>
+        <p style="margin-top: 2rem; color: #64748b;">
+          Created with MapLibre GL JS • PMTiles • Camera Recorder
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <script type="module">
+    // This is where you would import your actual map and story helpers
+    // For this example, we'll show the structure
+    
+    /*
+    import maplibregl from 'maplibre-gl';
+    import { registerPMTilesProtocol } from './pmtiles-setup';
+    import { createMapStyle } from './map-style';
+    import { setupScrollStory, loadPositionsFromJSON } from './story-scroll-helpers';
+
+    // Initialize map
+    registerPMTilesProtocol();
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: createMapStyle(),
+      center: [-3, 55],
+      zoom: 4,
+      minZoom: 0,
+      maxZoom: 24,
+      minPitch: 0,
+      maxPitch: 85,
+      bearingSnap: 0,
+    });
+
+    // Load recorded camera positions
+    map.on('load', async () => {
+      const positions = await loadPositionsFromJSON('/camera-positions.json');
+      
+      // Setup scroll-based story
+      const cleanup = setupScrollStory(map, positions, {
+        duration: 2500,
+        essential: true,
+      });
+
+      // Cleanup on page unload
+      window.addEventListener('beforeunload', cleanup);
+    });
+    */
+
+    console.log('Story scrolling example ready!');
+    console.log('To use:');
+    console.log('1. Record camera positions using the Camera Recorder control');
+    console.log('2. Export positions to JSON');
+    console.log('3. Load positions using loadPositionsFromJSON()');
+    console.log('4. Call setupScrollStory() to connect scroll to camera movements');
+  </script>
+</body>
+</html>

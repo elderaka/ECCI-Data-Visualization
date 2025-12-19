@@ -1,0 +1,20 @@
+{
+  "name": "ecci",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vite": "^6.0.7"
+  },
+  "dependencies": {
+    "echarts": "^6.0.0",
+    "maplibre-gl": "^5.11.0",
+    "pmtiles": "^4.3.0"
+  }
+}
