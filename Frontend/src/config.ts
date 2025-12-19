@@ -9,9 +9,7 @@ export const MAP_CONFIG = {
 };
 
 // Backend API URL - now unified on port 3000!
-export const API_SERVER_URL = import.meta.env.PROD 
-  ? 'http://54.206.53.146:3000' 
-  : 'http://localhost:3000';
+export const API_SERVER_URL = import.meta.env.VITE_API_SERVER_URL || 'http://localhost:3000';
 
 // For backward compatibility
 export const TILE_SERVER_URL = API_SERVER_URL;
