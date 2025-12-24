@@ -147,7 +147,7 @@ export const coBenefitsIntro2: LaporanSection = {
   align: 'start',
   justify: 'center',
   reverseLayout: true,
-  content: (area?: SelectedArea) => [
+  content: () => [
     {
       type: 'text',
       body: `Each curve on this chart represents a different <strong>co-benefit stream</strong>. When a line rises, your community gains. The question isn't <em>"should we act?"</em> — it's <em>"how much do we stand to gain?"</em>`

@@ -743,10 +743,4 @@ export class AreaSearch {
       this.selectArea(result, centroid);
     }
   }
-
-  public destroy(): void {
-    if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
-    }
-  }
 }

@@ -7,8 +7,7 @@ import {
   fetchNationalOverview,
   fetchHousingComparison,
   fetchNationalCategoryTimeseries,
-  fetchTopAreasByField,
-  fetchTradeOffsData
+  fetchTopAreasByField
 } from '../services/cobenefits-api';
 import {
   renderStackedAreaD3,
@@ -91,7 +90,7 @@ export class StoryMode {
    * Helper to resolve dynamic section properties (title, content, camera, etc.)
    */
   private resolveProperty<T>(prop: T | ((area?: any) => T)): T {
-    return typeof prop === 'function' ? prop(this.selectedArea) : prop;
+    return typeof prop === 'function' ? (prop as (area?: any) => T)(this.selectedArea) : prop;
   }
 
   /**
@@ -156,7 +155,7 @@ export class StoryMode {
         this.createSingleLeftLayout(sectionEl, section, index);
       } else if (section.layout === 'stacked') {
         // Vertically stacked cards
-        this.createStackedLayout(sectionEl, section, index);
+        this.createStackedLayout(sectionEl, section);
       } else {
         // Single column layout (original)
         this.createSingleLayout(sectionEl, section, index);
@@ -207,7 +206,7 @@ export class StoryMode {
   /**
    * Create stacked layout (vertically stacked cards)
    */
-  private createStackedLayout(sectionEl: HTMLElement, section: LaporanSection, index: number): void {
+  private createStackedLayout(sectionEl: HTMLElement, section: LaporanSection): void {
     const stackContainer = document.createElement('div');
     stackContainer.className = 'stack-container';
     
@@ -216,7 +215,7 @@ export class StoryMode {
     content.forEach((item, itemIndex) => {
       const card = document.createElement('div');
       card.className = 'stack-card';
-      card.innerHTML = this.renderContentItem(item, itemIndex);
+      card.innerHTML = this.renderContentItem(item);
       stackContainer.appendChild(card);
     });
     
@@ -251,7 +250,7 @@ export class StoryMode {
           subsectionEl.classList.add('subsection-single');
           const content = document.createElement('div');
           content.className = 'section-content';
-          content.innerHTML = this.renderSubsectionContent(section, subsection, index, subIndex);
+          content.innerHTML = this.renderSubsectionContent(section, subsection, subIndex);
           subsectionEl.appendChild(content);
         } else if (subsectionLayout === 'single-left') {
           // Single card on left column only
@@ -259,7 +258,7 @@ export class StoryMode {
           const storyCard = document.createElement('article');
           storyCard.className = 'story-card';
           storyCard.dataset.subsectionId = subsection.id;
-          storyCard.innerHTML = this.renderStoryCardFromSubsection(section, subsection, index, subIndex);
+          storyCard.innerHTML = this.renderStoryCardFromSubsection(section, subsection, subIndex);
           subsectionEl.appendChild(storyCard);
         } else {
           // Two-column scrolly layout
@@ -274,7 +273,7 @@ export class StoryMode {
           const storyCard = document.createElement('article');
           storyCard.className = 'story-card';
           storyCard.dataset.subsectionId = subsection.id;
-          storyCard.innerHTML = this.renderStoryCardFromSubsection(section, subsection, index, subIndex);
+          storyCard.innerHTML = this.renderStoryCardFromSubsection(section, subsection, subIndex);
           
           // Viz panel (visualization)
           const vizPanel = document.createElement('aside');
@@ -389,7 +388,7 @@ export class StoryMode {
   /**
    * Render subsection content for single-column layout
    */
-  private renderSubsectionContent(section: LaporanSection, subsection: any, sectionIndex: number, subIndex: number): string {
+  private renderSubsectionContent(section: LaporanSection, subsection: any, subIndex: number): string {
     const title = this.resolveProperty(section.title);
     const content = this.resolveProperty(subsection.content || section.content);
     const chapterLabel = this.resolveProperty(section.chapterLabel);
@@ -422,7 +421,7 @@ export class StoryMode {
   /**
    * Render story card from subsection data
    */
-  private renderStoryCardFromSubsection(section: LaporanSection, subsection: any, sectionIndex: number, subIndex: number): string {
+  private renderStoryCardFromSubsection(section: LaporanSection, subsection: any, subIndex: number): string {
     const title = this.resolveProperty(section.title);
     const content = this.resolveProperty(subsection.content || section.content);
     const chapterLabel = this.resolveProperty(section.chapterLabel);
@@ -744,7 +743,7 @@ export class StoryMode {
     }
     
     // Update progress bar
-    this.updateProgressBar();
+    this.updateProgressBar(0);
   }
 
   /**
@@ -962,7 +961,7 @@ export class StoryMode {
       if (endpoint.includes('/timeseries/area/area/') || endpoint.includes('/timeseries/region/area/') || endpoint.includes('/timeseries/nation/area/')) {
         const response = await fetch(`http://localhost:3000${endpoint}`);
         if (response.ok) {
-          const data: TimeseriesDataPoint[] = await response.json();
+          const data: TimeSeriesData[] = await response.json();
           
           if (data.length > 0) {
             return [

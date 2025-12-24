@@ -5,7 +5,7 @@ import { section03 } from './section-03-housing';
 import { section04 } from './section-04-mobility';
 import { section05 } from './section-05-future';
 import { section06 } from './section-06-outro';
-import type { Section, SelectedArea } from './types';
+import type { Section } from './types';
 import { UK_DEFAULT_CAMERA } from './types';
 
 // Export all sections in order
