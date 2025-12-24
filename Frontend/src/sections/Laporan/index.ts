@@ -14,7 +14,9 @@ import { laporanSection12 } from './section-12-techstack-timescale';
 import { laporanSection13 } from './section-13-techstack-tools';
 import { laporanSection14 } from './section-14-next-progress';
 import { laporanSection16 } from './section-16-thanks';
+import { CO_BENEFITS_SECTIONS } from './section-cobenefits';
 
+// Original Laporan sections (for project progress report)
 export const LAPORAN_SECTIONS: LaporanSection[] = [
   laporanSection01,
   laporanSection02,
@@ -33,4 +35,14 @@ export const LAPORAN_SECTIONS: LaporanSection[] = [
   laporanSection16,
 ];
 
-export type { LaporanSection, LaporanContent, LaporanContentType } from './types';
+// Co-Benefits Scrollytelling sections (from Iqbal's design)
+export { CO_BENEFITS_SECTIONS };
+
+// Combined sections for the full story experience
+export const ALL_SECTIONS: LaporanSection[] = [
+  ...CO_BENEFITS_SECTIONS,
+  ...LAPORAN_SECTIONS,
+];
+
+export type { LaporanSection, LaporanContent, LaporanContentType, SectionTheme, VizConfig, VizChartType, SelectedArea } from './types';
+export { UK_DEFAULT_CAMERA } from './types';

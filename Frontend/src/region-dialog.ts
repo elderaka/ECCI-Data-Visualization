@@ -1,11 +1,15 @@
-import type { Map as MapLibreMap, LngLat } from 'maplibre-gl';
-import { getTemperatureColor, formatValue, type Level1Data } from './data-loader';
-import { API_SERVER_URL } from './config';
+import type { Map as MapLibreMap, LngLat } from "maplibre-gl";
+import {
+  getTemperatureColor,
+  formatValue,
+  type Level1Data,
+} from "./data-loader";
+import { API_SERVER_URL } from "./config";
 
 export interface RegionDialogData {
   id: string;
   name: string;
-  type: 'nation' | 'local-authority' | 'small-area';
+  type: "nation" | "local-authority" | "small-area";
   color: string;
   properties: any;
   smallArea?: string; // The small_area ID for data lookup
@@ -25,29 +29,35 @@ export class RegionDialog {
   private isClosed = false; // Track if close() was called
   private onReady?: () => void; // Callback when dialog is fully created
 
-  constructor(data: RegionDialogData, x: number, y: number, map?: MapLibreMap, lngLat?: LngLat) {
+  constructor(
+    data: RegionDialogData,
+    x: number,
+    y: number,
+    map?: MapLibreMap,
+    lngLat?: LngLat
+  ) {
     this.data = data;
     this.map = map;
     this.lngLat = lngLat;
-    this.element = document.createElement('div'); // Create placeholder
-    
+    this.element = document.createElement("div"); // Create placeholder
+
     // Create dialog asynchronously
-    this.createDialog(x, y).then(dialog => {
+    this.createDialog(x, y).then((dialog) => {
       // If close() was called before dialog was created, don't append it
       if (this.isClosed) {
         dialog.remove();
         this.onClose?.();
         return;
       }
-      
+
       this.element = dialog;
       document.body.appendChild(this.element);
-      
+
       // Apply persistent mode if it was set before dialog was ready
       if (this.isPersistentMode) {
         this.applyPersistentStyles();
       }
-      
+
       // Call ready callback
       this.onReady?.();
     });
@@ -55,41 +65,8 @@ export class RegionDialog {
     // If map and lngLat provided, track map movement
     if (this.map && this.lngLat) {
       this.updateHandler = () => this.updatePosition();
-      this.map.on('move', this.updateHandler);
-      this.map.on('zoom', this.updateHandler);
-    }
-  }
-
-  private async populateContent(content: HTMLDivElement): Promise<void> {
-    if (!this.data.smallArea) {
-      content.innerHTML = '<div style="opacity: 0.7;">No data available</div>';
-      return;
-    }
-
-    // Show skeleton loader
-    content.innerHTML = this.createSkeletonLoader();
-
-    try {
-      const response = await fetch(`${API_SERVER_URL}/api/area-data/${this.data.smallArea}`);
-      
-      if (!response.ok) {
-        content.innerHTML = `<div style="opacity: 0.7;">No data found for ${this.data.smallArea}</div>`;
-        return;
-      }
-
-      const areaData = await response.json();
-
-      // Use isPersistentMode flag to determine what to show
-      if (this.isPersistentMode) {
-        // Show all data for clicked/persistent dialogs
-        content.innerHTML = this.createFullDataView(areaData);
-      } else {
-        // Show only top 3 for hover dialogs
-        content.innerHTML = this.createSummaryDataView(areaData);
-      }
-    } catch (error) {
-      console.error('Error loading data:', error);
-      content.innerHTML = '<div style="color: #ef4444;">Error loading data</div>';
+      this.map.on("move", this.updateHandler);
+      this.map.on("zoom", this.updateHandler);
     }
   }
 
@@ -100,11 +77,11 @@ export class RegionDialog {
         <div style="width: 35%; height: 16px; background: #334155; border-radius: 4px;"></div>
       </div>
     `;
-    
-    const rows = this.isPersistentMode 
-      ? Array(12).fill(skeletonRow).join('') // 12 rows for full view
-      : Array(3).fill(skeletonRow).join(''); // 3 rows for summary
-    
+
+    const rows = this.isPersistentMode
+      ? Array(12).fill(skeletonRow).join("") // 12 rows for full view
+      : Array(3).fill(skeletonRow).join(""); // 3 rows for summary
+
     return `
       <style>
         @keyframes pulse {
@@ -119,66 +96,85 @@ export class RegionDialog {
   private createSummaryDataView(data: Level1Data): string {
     // Show top 3 items: excess_heat (temperature), sum, and highest positive value
     const items = [
-      { label: 'Temperature', value: data.excess_heat, key: 'excess_heat' },
-      { label: 'Total', value: data.sum, key: 'sum' },
-      { label: 'Physical Activity', value: data.physical_activity, key: 'physical_activity' },
+      { label: "Temperature", value: data.excess_heat, key: "excess_heat" },
+      { label: "Total", value: data.sum, key: "sum" },
+      {
+        label: "Physical Activity",
+        value: data.physical_activity,
+        key: "physical_activity",
+      },
     ];
 
-    return items.map(item => {
-      const color = item.key === 'excess_heat' 
-        ? getTemperatureColor(item.value)
-        : (item.value >= 0 ? '#10b981' : '#ef4444');
-      
-      return `
+    return items
+      .map((item) => {
+        const color =
+          item.key === "excess_heat"
+            ? getTemperatureColor(item.value)
+            : item.value >= 0
+            ? "#10b981"
+            : "#ef4444";
+
+        return `
         <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
           <span style="opacity: 0.8;">${item.label}:</span>
-          <span style="color: ${color}; font-weight: 600;">${formatValue(item.value)}</span>
+          <span style="color: ${color}; font-weight: 600;">${formatValue(
+          item.value
+        )}</span>
         </div>
       `;
-    }).join('');
+      })
+      .join("");
   }
 
   private createFullDataView(data: Level1Data): string {
     const fields = [
-      { label: 'Air Quality', value: data.air_quality },
-      { label: 'Congestion', value: data.congestion },
-      { label: 'Dampness', value: data.dampness },
-      { label: 'Diet Change', value: data.diet_change },
-      { label: 'Excess Cold', value: data.excess_cold },
-      { label: 'Excess Heat (Temp)', value: data.excess_heat, isTemp: true },
-      { label: 'Hassle Costs', value: data.hassle_costs },
-      { label: 'Noise', value: data.noise },
-      { label: 'Physical Activity', value: data.physical_activity },
-      { label: 'Road Repairs', value: data.road_repairs },
-      { label: 'Road Safety', value: data.road_safety },
+      { label: "Air Quality", value: data.air_quality },
+      { label: "Congestion", value: data.congestion },
+      { label: "Dampness", value: data.dampness },
+      { label: "Diet Change", value: data.diet_change },
+      { label: "Excess Cold", value: data.excess_cold },
+      { label: "Excess Heat (Temp)", value: data.excess_heat, isTemp: true },
+      { label: "Hassle Costs", value: data.hassle_costs },
+      { label: "Noise", value: data.noise },
+      { label: "Physical Activity", value: data.physical_activity },
+      { label: "Road Repairs", value: data.road_repairs },
+      { label: "Road Safety", value: data.road_safety },
     ];
 
-    const rows = fields.map(field => {
-      const color = field.isTemp 
-        ? getTemperatureColor(field.value)
-        : (field.value >= 0 ? '#10b981' : '#ef4444');
-      
-      return `
+    const rows = fields
+      .map((field) => {
+        const color = field.isTemp
+          ? getTemperatureColor(field.value)
+          : field.value >= 0
+          ? "#10b981"
+          : "#ef4444";
+
+        return `
         <div style="display: flex; justify-content: space-between; margin-bottom: 6px; padding: 4px 0; border-bottom: 1px solid #334155;">
           <span style="opacity: 0.8; font-size: 11px;">${field.label}:</span>
-          <span style="color: ${color}; font-weight: 600; font-size: 11px;">${formatValue(field.value)}</span>
+          <span style="color: ${color}; font-weight: 600; font-size: 11px;">${formatValue(
+          field.value
+        )}</span>
         </div>
       `;
-    }).join('');
+      })
+      .join("");
 
-    const totalColor = data.sum >= 0 ? '#10b981' : '#ef4444';
-    
+    const totalColor = data.sum >= 0 ? "#10b981" : "#ef4444";
+
     return `
       ${rows}
       <div style="display: flex; justify-content: space-between; margin-top: 12px; padding-top: 8px; border-top: 2px solid #475569;">
         <span style="font-weight: 700;">Total Sum:</span>
-        <span style="color: ${totalColor}; font-weight: 700;">${formatValue(data.sum)}</span>
+        <span style="color: ${totalColor}; font-weight: 700;">${formatValue(
+      data.sum
+    )}</span>
       </div>
     `;
   }
 
   private async createDialog(x: number, y: number): Promise<HTMLDivElement> {
-    const dialog = document.createElement('div');
+    const dialog = document.createElement("div");
     dialog.style.cssText = `
       position: fixed;
       left: ${x}px;
@@ -195,7 +191,7 @@ export class RegionDialog {
     `;
 
     // Header with colored background
-    const header = document.createElement('div');
+    const header = document.createElement("div");
     header.style.cssText = `
       background: ${this.data.color};
       color: #f1f5f9;
@@ -205,13 +201,46 @@ export class RegionDialog {
       border-radius: 6px 6px 0 0;
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
     `;
-    header.textContent = this.data.name;
+
+    // Create header content container
+    const headerContent = document.createElement("div");
+    headerContent.style.cssText = `
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    `;
+
+    // Area name
+    const areaName = document.createElement("div");
+    areaName.textContent = this.data.name;
+    areaName.style.cssText = `
+      font-weight: 600;
+      font-size: 14px;
+    `;
+    headerContent.appendChild(areaName);
+
+    // Area type display (will be populated after data fetch)
+    const areaType = document.createElement("div");
+    areaType.style.cssText = `
+      font-size: 11px;
+      font-weight: 400;
+      opacity: 0.85;
+      font-style: italic;
+    `;
+    areaType.textContent = "Loading...";
+    headerContent.appendChild(areaType);
+
+    // Store reference to update later
+    (header as any)._areaType = areaType;
+
+    header.appendChild(headerContent);
 
     // Close button (hidden for hover-only dialogs)
-    const closeBtn = document.createElement('button');
-    closeBtn.innerHTML = '✕';
+    const closeBtn = document.createElement("button");
+    closeBtn.innerHTML = "✕";
     closeBtn.style.cssText = `
       background: none;
       border: none;
@@ -226,14 +255,21 @@ export class RegionDialog {
       justify-content: center;
       opacity: 0.7;
       transition: opacity 0.2s;
+      flex-shrink: 0;
     `;
-    closeBtn.addEventListener('mouseenter', () => closeBtn.style.opacity = '1');
-    closeBtn.addEventListener('mouseleave', () => closeBtn.style.opacity = '0.7');
-    closeBtn.addEventListener('click', () => this.close());
+    closeBtn.addEventListener(
+      "mouseenter",
+      () => (closeBtn.style.opacity = "1")
+    );
+    closeBtn.addEventListener(
+      "mouseleave",
+      () => (closeBtn.style.opacity = "0.7")
+    );
+    closeBtn.addEventListener("click", () => this.close());
     header.appendChild(closeBtn);
 
     // Content
-    const content = document.createElement('div');
+    const content = document.createElement("div");
     content.style.cssText = `
       padding: 16px;
       color: #e2e8f0;
@@ -242,13 +278,13 @@ export class RegionDialog {
       max-height: 400px;
       overflow-y: auto;
     `;
-    
+
     // Load and display data
     await this.populateContent(content);
 
     // Compare button (hidden initially)
-    const compareBtn = document.createElement('button');
-    compareBtn.textContent = 'Compare';
+    const compareBtn = document.createElement("button");
+    compareBtn.textContent = "Compare";
     compareBtn.style.cssText = `
       width: calc(100% - 32px);
       margin: 0 16px 16px;
@@ -263,9 +299,15 @@ export class RegionDialog {
       display: none;
       transition: background 0.2s;
     `;
-    compareBtn.addEventListener('mouseenter', () => compareBtn.style.background = '#334155');
-    compareBtn.addEventListener('mouseleave', () => compareBtn.style.background = '#475569');
-    compareBtn.addEventListener('click', () => this.toggleCompare());
+    compareBtn.addEventListener(
+      "mouseenter",
+      () => (compareBtn.style.background = "#334155")
+    );
+    compareBtn.addEventListener(
+      "mouseleave",
+      () => (compareBtn.style.background = "#475569")
+    );
+    compareBtn.addEventListener("click", () => this.toggleCompare());
 
     dialog.appendChild(header);
     dialog.appendChild(content);
@@ -275,8 +317,61 @@ export class RegionDialog {
     (dialog as any)._closeBtn = closeBtn;
     (dialog as any)._compareBtn = compareBtn;
     (dialog as any)._content = content;
+    (dialog as any)._header = header;
 
     return dialog;
+  }
+
+  private async populateContent(content: HTMLDivElement): Promise<void> {
+    if (!this.data.smallArea) {
+      content.innerHTML = '<div style="opacity: 0.7;">No data available</div>';
+      return;
+    }
+
+    // Show skeleton loader
+    content.innerHTML = this.createSkeletonLoader();
+
+    try {
+      const response = await fetch(
+        `${API_SERVER_URL}/api/area-data/${this.data.smallArea}`
+      );
+
+      if (!response.ok) {
+        content.innerHTML = `<div style="opacity: 0.7;">No data found for ${this.data.smallArea}</div>`;
+        return;
+      }
+
+      const areaData = await response.json();
+
+      // Update area type in header if available
+      if (areaData.area_type_display) {
+        const header = (this.element as any)._header;
+        const areaTypeElement = header?._areaType;
+        if (areaTypeElement) {
+          areaTypeElement.textContent = areaData.area_type_display;
+        }
+      }
+
+      // Use isPersistentMode flag to determine what to show
+      if (this.isPersistentMode) {
+        // Show all data for clicked/persistent dialogs
+        content.innerHTML = this.createFullDataView(areaData);
+      } else {
+        // Show only top 3 for hover dialogs
+        content.innerHTML = this.createSummaryDataView(areaData);
+      }
+    } catch (error) {
+      console.error("Error loading data:", error);
+      content.innerHTML =
+        '<div style="color: #ef4444;">Error loading data</div>';
+
+      // Update area type to show error
+      const header = (this.element as any)._header;
+      const areaTypeElement = header?._areaType;
+      if (areaTypeElement) {
+        areaTypeElement.textContent = "Classification unavailable";
+      }
+    }
   }
 
   public makePersistent(): void {
@@ -287,9 +382,9 @@ export class RegionDialog {
   private applyPersistentStyles(): void {
     const closeBtn = (this.element as any)._closeBtn;
     const compareBtn = (this.element as any)._compareBtn;
-    if (closeBtn) closeBtn.style.display = 'flex';
-    if (compareBtn) compareBtn.style.display = 'block';
-    
+    if (closeBtn) closeBtn.style.display = "flex";
+    if (compareBtn) compareBtn.style.display = "block";
+
     // Refresh content to show all data instead of summary
     const content = (this.element as any)._content;
     if (content && this.data.smallArea) {
@@ -301,8 +396,8 @@ export class RegionDialog {
     this.isPersistentMode = false;
     const closeBtn = (this.element as any)._closeBtn;
     const compareBtn = (this.element as any)._compareBtn;
-    if (closeBtn) closeBtn.style.display = 'none';
-    if (compareBtn) compareBtn.style.display = 'none';
+    if (closeBtn) closeBtn.style.display = "none";
+    if (compareBtn) compareBtn.style.display = "none";
   }
 
   /** Update the dialog position (for hover tooltips or map movement) */
@@ -322,11 +417,11 @@ export class RegionDialog {
   public close(): void {
     // Mark as closed
     this.isClosed = true;
-    
+
     // Remove map event listeners
     if (this.map && this.updateHandler) {
-      this.map.off('move', this.updateHandler);
-      this.map.off('zoom', this.updateHandler);
+      this.map.off("move", this.updateHandler);
+      this.map.off("zoom", this.updateHandler);
     }
 
     // If comparing, close linked dialog too
@@ -334,10 +429,10 @@ export class RegionDialog {
       this.linkedDialog.unlinkCompare();
       this.linkedDialog.close();
     }
-    
+
     // Only try to animate/remove if element is actually in DOM
     if (this.element && this.element.parentElement) {
-      this.element.style.opacity = '0';
+      this.element.style.opacity = "0";
       setTimeout(() => {
         if (this.element && this.element.parentElement) {
           this.element.remove();
@@ -352,9 +447,9 @@ export class RegionDialog {
 
   public toggleCompare(): void {
     this.isComparing = !this.isComparing;
-    
-    console.log('toggleCompare called, isComparing:', this.isComparing);
-    
+
+    console.log("toggleCompare called, isComparing:", this.isComparing);
+
     // Update button if element is ready
     const compareBtn = (this.element as any)._compareBtn;
     if (compareBtn) {
@@ -362,40 +457,40 @@ export class RegionDialog {
         // Check if we have a linked dialog (from the prompt state)
         if (this.linkedDialog) {
           // Activate compare mode on both dialogs
-          console.log('Activating compare mode for both linked dialogs');
-          compareBtn.style.background = '#10b981';
-          compareBtn.style.borderColor = '#34d399';
+          console.log("Activating compare mode for both linked dialogs");
+          compareBtn.style.background = "#10b981";
+          compareBtn.style.borderColor = "#34d399";
           compareBtn.textContent = `Comparing with ${this.linkedDialog.data.name}`;
-          
+
           // Update the other dialog too
           this.linkedDialog.isComparing = true;
           const otherBtn = (this.linkedDialog.element as any)._compareBtn;
           if (otherBtn) {
-            otherBtn.style.background = '#10b981';
-            otherBtn.style.borderColor = '#34d399';
+            otherBtn.style.background = "#10b981";
+            otherBtn.style.borderColor = "#34d399";
             otherBtn.textContent = `Comparing with ${this.data.name}`;
           }
         } else {
           // No linked dialog yet, waiting for second click
-          compareBtn.style.background = '#3b82f6';
-          compareBtn.style.borderColor = '#60a5fa';
-          compareBtn.textContent = 'Comparing...';
-          console.log('Compare mode activated - waiting for second region');
+          compareBtn.style.background = "#3b82f6";
+          compareBtn.style.borderColor = "#60a5fa";
+          compareBtn.textContent = "Comparing...";
+          console.log("Compare mode activated - waiting for second region");
         }
       } else {
-        compareBtn.style.background = '#475569';
-        compareBtn.style.borderColor = '#64748b';
-        compareBtn.textContent = 'Compare';
+        compareBtn.style.background = "#475569";
+        compareBtn.style.borderColor = "#64748b";
+        compareBtn.textContent = "Compare";
         if (this.linkedDialog) {
           this.linkedDialog.unlinkCompare();
           this.linkedDialog = undefined;
         }
-        console.log('Compare mode deactivated');
+        console.log("Compare mode deactivated");
       }
     } else {
-      console.warn('Compare button not ready yet');
+      console.warn("Compare button not ready yet");
     }
-    
+
     // Call callback
     this.onCompare?.(this);
   }
@@ -407,13 +502,13 @@ export class RegionDialog {
       // If this dialog is not yet in compare mode, show "Compare with X?" prompt
       if (!this.isComparing) {
         compareBtn.textContent = `Compare with ${otherDialog.data.name}?`;
-        compareBtn.style.background = '#f59e0b'; // Orange to indicate prompt
-        compareBtn.style.borderColor = '#fbbf24';
+        compareBtn.style.background = "#f59e0b"; // Orange to indicate prompt
+        compareBtn.style.borderColor = "#fbbf24";
       } else {
         // Both are in compare mode, show green confirmation
         compareBtn.textContent = `Comparing with ${otherDialog.data.name}`;
-        compareBtn.style.background = '#10b981';
-        compareBtn.style.borderColor = '#34d399';
+        compareBtn.style.background = "#10b981";
+        compareBtn.style.borderColor = "#34d399";
       }
     }
   }
@@ -423,9 +518,9 @@ export class RegionDialog {
     this.linkedDialog = undefined;
     const compareBtn = (this.element as any)._compareBtn;
     if (compareBtn) {
-      compareBtn.textContent = 'Compare';
-      compareBtn.style.background = '#475569';
-      compareBtn.style.borderColor = '#64748b';
+      compareBtn.textContent = "Compare";
+      compareBtn.style.background = "#475569";
+      compareBtn.style.borderColor = "#64748b";
     }
   }
 

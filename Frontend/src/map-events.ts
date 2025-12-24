@@ -2,7 +2,7 @@ import type { Map } from 'maplibre-gl';
 import type { LoadingScreen } from './loading-screen';
 import type { LODControl } from './lod-control';
 import type { DataLoadingIndicator } from './data-loading-indicator';
-import { isNavigationActive } from './region-click';
+import { isNavigationActive, isPickMapModeActive } from './region-click';
 import { isStoryModeActive } from './sections/story-mode';
 
 const FIXED_LONGITUDE = -3; // Fixed center longitude
@@ -31,12 +31,12 @@ export function setupMapEvents(
     // Don't add to loadedZoomLevels here - preloadCriticalTiles handles it
   });
 
-  // Restrict horizontal panning at zoom levels 4-6 (unless navigating or in story mode)
+  // Restrict horizontal panning at zoom levels 4-6 (unless navigating or in story mode or pick-map mode)
   map.on('move', () => {
     const zoom = map.getZoom();
     
-    // Skip clamping if navigation is in progress OR story mode is active
-    if (isNavigationActive() || isStoryModeActive()) return;
+    // Skip clamping if navigation is in progress OR story mode is active OR pick-map mode is active
+    if (isNavigationActive() || isStoryModeActive() || isPickMapModeActive()) return;
     
     // For zoom levels 4-6, lock longitude to center
     if (zoom >= 4 && zoom <= 4) {
@@ -104,8 +104,8 @@ export function setupMapEvents(
       }
     }
     
-    // Skip recentering if navigation is in progress OR story mode is active
-    if (isNavigationActive() || isStoryModeActive()) {
+    // Skip recentering if navigation is in progress OR story mode is active OR pick-map mode is active
+    if (isNavigationActive() || isStoryModeActive() || isPickMapModeActive()) {
       previousZoom = zoom;
       return;
     }

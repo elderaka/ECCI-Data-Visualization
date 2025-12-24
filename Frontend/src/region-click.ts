@@ -26,6 +26,9 @@ function getFeatureCentroid(feature: any): LngLat {
 // Flag to temporarily disable zone clamping during navigation
 let isNavigating = false;
 
+// Flag to disable region clicks in pick-map mode
+let isPickMapMode = false;
+
 // Dialog management
 let hoverDialog: RegionDialog | null = null;
 let hoverTimeout: number | null = null;
@@ -187,6 +190,12 @@ export function setupRegionClick(map: MapLibreMap, compassControl?: CompassContr
 
   // Click to make dialog persistent
   map.on('click', (e) => {
+    // Skip if in pick-map mode
+    if (isPickMapMode) {
+      console.log('⏭️ Skipping region dialog - in pick-map mode');
+      return;
+    }
+    
     const currentZoom = map.getZoom();
     
     // Determine which layers are visible at current zoom
@@ -397,4 +406,13 @@ export function setupRegionClick(map: MapLibreMap, compassControl?: CompassContr
 // Export function to check if navigation is in progress
 export function isNavigationActive(): boolean {
   return isNavigating;
+}
+
+export function isPickMapModeActive(): boolean {
+  return isPickMapMode;
+}
+
+export function setPickMapMode(enabled: boolean): void {
+  isPickMapMode = enabled;
+  console.log('🎯 Pick-map mode:', enabled ? 'ENABLED' : 'DISABLED');
 }

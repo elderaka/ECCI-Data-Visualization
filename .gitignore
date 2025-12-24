@@ -21,9 +21,6 @@ PMTiles/*.pmtiles
 tippecanoe-*/
 PMTiles/
 
-# Documentation files
-*.md
-
 # CSV data files (optional - remove if you want to commit them)
 *.csv
 dataset/*.csv

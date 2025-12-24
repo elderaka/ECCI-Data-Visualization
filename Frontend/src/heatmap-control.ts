@@ -275,22 +275,19 @@ export class HeatmapControl {
       }
     }
   }
-  private addHeatmapSource(): void {
-    console.log('Heatmap will use existing PMTiles sources (nations, local_authorities, small_areas)');
-  }
   private applyHeatmapColors(
     field: string, 
     dataMap: Record<string, any>,
-    sortedValues: number[],
+    _sortedValues: number[],
     min: number, 
     max: number, 
-    p25: number, 
+    _p25: number, 
     p50: number, 
-    p75: number,
+    _p75: number,
     currentLOD: string
   ): void {
     console.log(`Applying heatmap colors for ${field} at LOD: ${currentLOD}`);
-    console.log(`Range: ${min} to ${max}, Percentiles: 25th=${p25}, 50th=${p50}, 75th=${p75}`);
+    console.log(`Range: ${min} to ${max}, Percentiles: 25th=${_p25}, 50th=${p50}, 75th=${_p75}`);
     console.log(`Data for ${Object.keys(dataMap).length} regions:`, dataMap);
     let fillLayerId: string;
     let sourceName: string;  
@@ -399,9 +396,9 @@ export class HeatmapControl {
     }
   }
   private addHeatmapDebugLabels(
-    field: string, 
-    dataMap: Record<string, any>, 
-    currentLOD: string, 
+    _field: string, 
+    _dataMap: Record<string, any>, 
+    _currentLOD: string, 
     sourceName: string,
     sourceLayer: string, 
     propertyKey: string,
@@ -527,6 +524,20 @@ export class HeatmapControl {
     if (this.selectedField) {
       console.log('🔄 LOD changed, reloading heatmap');
       this.updateHeatmap(this.selectedField);
+    }
+  }
+  
+  /**
+   * Toggle heatmap display from external events (e.g., story mode)
+   */
+  public toggleHeatmap(show: boolean, field?: string | null): void {
+    console.log('🗺️ Toggle heatmap:', { show, field });
+    if (show && field) {
+      this.selectedField = field;
+      this.updateHeatmap(field);
+    } else if (!show) {
+      this.selectedField = null;
+      this.updateHeatmap(null);
     }
   }
 }

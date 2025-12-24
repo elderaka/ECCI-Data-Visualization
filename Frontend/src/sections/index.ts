@@ -5,7 +5,8 @@ import { section03 } from './section-03-housing';
 import { section04 } from './section-04-mobility';
 import { section05 } from './section-05-future';
 import { section06 } from './section-06-outro';
-import type { Section } from './types';
+import type { Section, SelectedArea } from './types';
+import { UK_DEFAULT_CAMERA } from './types';
 
 // Export all sections in order
 export const SECTIONS: Section[] = [
@@ -27,5 +28,8 @@ export {
   section06,
 };
 
+// Export constants
+export { UK_DEFAULT_CAMERA };
+
 // Export types
-export type { Section, SectionContent, SectionContentType } from './types';
+export type { Section, SectionContent, SectionContentType, SelectedArea } from './types';

@@ -1,0 +1,11 @@
+# Vercel ignore patterns
+Backend/
+PMTiles/
+tippecanoe-2.79.0/
+dataset/
+ECCI_Iqbal-main/
+node_modules/
+*.log
+*.sql
+*.ppk
+.env.local

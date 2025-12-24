@@ -25,6 +25,16 @@ ALTER TABLE small_areas ADD COLUMN IF NOT EXISTS road_repairs DOUBLE PRECISION;
 ALTER TABLE small_areas ADD COLUMN IF NOT EXISTS road_safety DOUBLE PRECISION;
 ALTER TABLE small_areas ADD COLUMN IF NOT EXISTS sum DOUBLE PRECISION;
 
+-- Add lookup columns (population, households, LA, nation)
+ALTER TABLE small_areas ADD COLUMN IF NOT EXISTS population INTEGER;
+ALTER TABLE small_areas ADD COLUMN IF NOT EXISTS households INTEGER;
+ALTER TABLE small_areas ADD COLUMN IF NOT EXISTS lookups_local_authority TEXT;
+ALTER TABLE small_areas ADD COLUMN IF NOT EXISTS lookups_nation TEXT;
+
+-- Add RUC classification columns
+ALTER TABLE small_areas ADD COLUMN IF NOT EXISTS urban_rural TEXT;
+ALTER TABLE small_areas ADD COLUMN IF NOT EXISTS area_type_display TEXT;
+
 -- 4. Create temporary table for CSV import
 CREATE TEMP TABLE level1_temp (
     small_area TEXT,
@@ -63,9 +73,38 @@ SET
 FROM level1_temp lt
 WHERE sa.small_area = lt.small_area;
 
+-- 6b. Create temporary table for lookups import
+CREATE TEMP TABLE lookups_temp (
+    small_area TEXT,
+    population TEXT,
+    households TEXT,
+    local_authority TEXT,
+    nation TEXT,
+    urban_rural TEXT,
+    area_type_display TEXT
+);
+
+-- 6c. Import lookups CSV (run in psql or use COPY command):
+-- \copy lookups_temp FROM 'd:/Websites/ECCI/dataset/lookups_with_classification.csv' WITH (FORMAT csv, HEADER true);
+
+-- 6d. Update small_areas with lookup data
+UPDATE small_areas sa
+SET 
+    population = CASE WHEN lt.population = 'NA' THEN NULL ELSE lt.population::INTEGER END,
+    households = CASE WHEN lt.households = 'NA' THEN NULL ELSE lt.households::INTEGER END,
+    lookups_local_authority = lt.local_authority,
+    lookups_nation = lt.nation,
+    urban_rural = lt.urban_rural,
+    area_type_display = lt.area_type_display
+FROM lookups_temp lt
+WHERE sa.small_area = lt.small_area;
+
 -- 7. Create spatial indexes for performance
 CREATE INDEX IF NOT EXISTS small_areas_geom_idx ON small_areas USING GIST(geom);
 CREATE INDEX IF NOT EXISTS small_areas_sa_idx ON small_areas(small_area);
+CREATE INDEX IF NOT EXISTS small_areas_la_idx ON small_areas(lookups_local_authority);
+CREATE INDEX IF NOT EXISTS small_areas_nation_idx ON small_areas(lookups_nation);
+CREATE INDEX IF NOT EXISTS small_areas_urban_rural_idx ON small_areas(urban_rural);
 CREATE INDEX IF NOT EXISTS local_authorities_geom_idx ON local_authorities USING GIST(geom);
 CREATE INDEX IF NOT EXISTS nations_geom_idx ON nations USING GIST(geom);
 
@@ -77,6 +116,16 @@ ANALYZE nations;
 -- 9. Verify data import
 SELECT COUNT(*) as total_small_areas FROM small_areas;
 SELECT COUNT(*) as small_areas_with_data FROM small_areas WHERE air_quality IS NOT NULL;
+SELECT COUNT(*) as small_areas_with_lookups FROM small_areas WHERE lookups_local_authority IS NOT NULL;
+SELECT COUNT(*) as small_areas_with_ruc FROM small_areas WHERE urban_rural IS NOT NULL;
+SELECT 
+    urban_rural,
+    area_type_display,
+    COUNT(*) as count
+FROM small_areas
+WHERE urban_rural IS NOT NULL
+GROUP BY urban_rural, area_type_display
+ORDER BY urban_rural, count DESC;
 SELECT 
     MIN(excess_heat) as min_heat,
     MAX(excess_heat) as max_heat,

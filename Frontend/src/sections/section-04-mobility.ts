@@ -1,35 +1,44 @@
-import type { Section } from './types';
+import type { Section, SelectedArea } from './types';
+import { UK_DEFAULT_CAMERA } from './types';
 
 export const section04: Section = {
   id: 4,
-  title: 'Road Mobility & Safety',
-  content: [
+  title: (area?: SelectedArea) => area
+    ? `Road Mobility in ${area.localAuthority}`
+    : 'Road Mobility & Safety',
+  content: (area?: SelectedArea) => [
     {
-      type: 'image',
+      type: 'text',
       props: {
-        src: '/images/traffic-congestion.jpg',
-        alt: 'Traffic congestion visualization',
-        caption: 'Congestion costs billions in lost productivity annually',
+        text: area
+          ? `In ${area.areaTypeDisplay} areas, reducing car dependency cuts congestion and improves road safety. See how ${area.localAuthority} could benefit.`
+          : 'Congestion costs billions annually. Active travel and public transport investments save money and lives.',
       },
     },
     {
       type: 'chart',
       props: {
         chartType: 'line',
-        dataEndpoint: '/api/timeseries/nation/area/England',
+        dataEndpoint: area
+          ? `/api/timeseries/area/area/${area.id}`
+          : '/api/timeseries/nation/area/England',
         fields: ['congestion', 'road_safety'],
-        title: 'Road Mobility Trends: England (2025-2050)',
+        title: area
+          ? `Road Mobility: ${area.name} (2025-2050)`
+          : 'Road Mobility Trends: England (2025-2050)',
       },
     },
   ],
   textPosition: 'right',
-  cameraPosition: {
-    center: [-0.1278, 51.5074], // London
-    zoom: 8,
-    pitch: 60,
-    bearing: 45,
-    timestamp: new Date().toISOString(),
-  },
+  cameraPosition: (area?: SelectedArea) => area
+    ? {
+        center: area.center,
+        zoom: 11,
+        pitch: 0,
+        bearing: 0,
+        timestamp: new Date().toISOString(),
+      }
+    : UK_DEFAULT_CAMERA,
   mapOpacity: 0.6,
   mapPosition: 'left',
 };

@@ -141,6 +141,8 @@ app.get('/tiles/:layer/:z/:x/:y.pbf', async (req, res) => {
         small_area,
         lookups_local_authority,
         lookups_nation,
+        urban_rural,
+        area_type_display,
         air_quality, congestion, dampness, diet_change,
         excess_cold, excess_heat, hassle_costs, noise,
         physical_activity, road_repairs, road_safety, sum
@@ -235,6 +237,166 @@ function tileToBBox(x, y, z) {
 }
 
 /**
+ * API endpoint to search for areas by name or code
+ * Searches across small areas, local authorities, and nations
+ * GET /api/search-areas?q=query
+ */
+app.get('/api/search-areas', async (req, res) => {
+  const { q } = req.query;
+  
+  if (!q || q.length < 2) {
+    return res.json([]);
+  }
+  
+  try {
+    const searchPattern = `%${q}%`;
+    const exactPattern = `${q}%`;
+    
+    // Search small areas
+    const smallAreasQuery = `
+      SELECT
+        small_area as id,
+        small_area as name,
+        lookups_local_authority,
+        lookups_nation,
+        urban_rural,
+        area_type_display,
+        'small_area' as type,
+        CASE 
+          WHEN LOWER(small_area) LIKE LOWER($2) THEN 1
+          ELSE 3
+        END as rank
+      FROM small_areas
+      WHERE LOWER(small_area) LIKE LOWER($1)
+      LIMIT 10
+    `;
+    
+    // Search local authorities
+    const localAuthQuery = `
+      SELECT DISTINCT
+        lookups_local_authority as id,
+        lookups_local_authority as name,
+        lookups_local_authority,
+        lookups_nation,
+        NULL as urban_rural,
+        NULL as area_type_display,
+        'local_authority' as type,
+        CASE 
+          WHEN LOWER(lookups_local_authority) LIKE LOWER($2) THEN 1
+          ELSE 2
+        END as rank
+      FROM small_areas
+      WHERE LOWER(lookups_local_authority) LIKE LOWER($1)
+      LIMIT 10
+    `;
+    
+    // Search nations
+    const nationsQuery = `
+      SELECT DISTINCT
+        lookups_nation as id,
+        lookups_nation as name,
+        NULL as lookups_local_authority,
+        lookups_nation,
+        NULL as urban_rural,
+        NULL as area_type_display,
+        'nation' as type,
+        CASE 
+          WHEN LOWER(lookups_nation) LIKE LOWER($2) THEN 1
+          ELSE 2
+        END as rank
+      FROM small_areas
+      WHERE LOWER(lookups_nation) LIKE LOWER($1)
+      LIMIT 4
+    `;
+    
+    // Execute all queries in parallel
+    const [smallAreasResult, localAuthResult, nationsResult] = await Promise.all([
+      pool.query(smallAreasQuery, [searchPattern, exactPattern]),
+      pool.query(localAuthQuery, [searchPattern, exactPattern]),
+      pool.query(nationsQuery, [searchPattern, exactPattern])
+    ]);
+    
+    // Combine and sort results
+    const allResults = [
+      ...nationsResult.rows,
+      ...localAuthResult.rows,
+      ...smallAreasResult.rows
+    ].sort((a, b) => {
+      if (a.rank !== b.rank) return a.rank - b.rank;
+      return a.name.localeCompare(b.name);
+    }).slice(0, 20);
+    
+    res.json(allResults);
+  } catch (error) {
+    console.error('Error searching areas:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * API endpoint to get a random area (small area, LA, or nation)
+ * GET /api/random-area
+ */
+app.get('/api/random-area', async (req, res) => {
+  try {
+    // Randomly select type (60% LA, 40% nation - no small areas)
+    const rand = Math.random();
+    let query;
+    
+    if (rand < 0.6) {
+      // Random local authority
+      query = `
+        SELECT
+          la as id,
+          la as name,
+          la as lookups_local_authority,
+          nation as lookups_nation,
+          NULL as urban_rural,
+          NULL as area_type_display,
+          'local_authority' as type
+        FROM (
+          SELECT DISTINCT lookups_local_authority as la, lookups_nation as nation
+          FROM small_areas
+          WHERE lookups_local_authority IS NOT NULL
+        ) distinct_las
+        ORDER BY RANDOM()
+        LIMIT 1
+      `;
+    } else {
+      // Random nation
+      query = `
+        SELECT
+          nation as id,
+          nation as name,
+          NULL as lookups_local_authority,
+          nation as lookups_nation,
+          NULL as urban_rural,
+          NULL as area_type_display,
+          'nation' as type
+        FROM (
+          SELECT DISTINCT lookups_nation as nation
+          FROM small_areas
+          WHERE lookups_nation IS NOT NULL
+        ) distinct_nations
+        ORDER BY RANDOM()
+        LIMIT 1
+      `;
+    }
+    
+    const result = await pool.query(query);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'No areas found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching random area:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * API endpoint to get data for a specific small area
  */
 app.get('/api/area-data/:small_area', async (req, res) => {
@@ -244,6 +406,10 @@ app.get('/api/area-data/:small_area', async (req, res) => {
     const query = `
       SELECT 
         small_area,
+        lookups_local_authority,
+        lookups_nation,
+        urban_rural,
+        area_type_display,
         air_quality, congestion, dampness, diet_change,
         excess_cold, excess_heat, hassle_costs, noise,
         physical_activity, road_repairs, road_safety, sum
@@ -305,6 +471,8 @@ app.get('/api/heatmap-data/:field/:lod', async (req, res) => {
       query = `
         SELECT 
           small_area as id,
+          urban_rural,
+          area_type_display,
           ${field} as value
         FROM small_areas_standardized
         WHERE small_area IS NOT NULL
@@ -426,6 +594,8 @@ app.get('/api/category-data/:lod', async (req, res) => {
           small_area as name,
           lookups_local_authority,
           lookups_nation,
+          urban_rural,
+          area_type_display,
           health_wellbeing,
           air_quality,
           physical_activity,
@@ -585,6 +755,8 @@ app.get('/api/timeseries/:lod/:year', async (req, res) => {
           small_area as name,
           lookups_local_authority,
           lookups_nation,
+          urban_rural,
+          area_type_display,
           time_year as year,
           health_wellbeing,
           housing_comfort,
@@ -735,6 +907,8 @@ app.get('/api/timeseries/:lod/category/:category', async (req, res) => {
         SELECT 
           time_year as year,
           small_area as name,
+          urban_rural,
+          area_type_display,
           ${category}
         FROM small_areas_timeseries
         WHERE time_year BETWEEN $1 AND $2
@@ -762,6 +936,8 @@ app.listen(PORT, () => {
   console.log(`\n🚀 Unified ECCI Server running on http://localhost:${PORT}`);
   console.log(`📦 PMTiles: http://localhost:${PORT}/tiles/{file}`);
   console.log(`🗺️  Vector Tiles (PostGIS): http://localhost:${PORT}/tiles/{layer}/{z}/{x}/{y}.pbf`);
+  console.log(`🔍 Search Areas: http://localhost:${PORT}/api/search-areas?q={query}`);
+  console.log(`🎲 Random Area: http://localhost:${PORT}/api/random-area`);
   console.log(`📊 Area Data: http://localhost:${PORT}/api/area-data/{small_area}`);
   console.log(`🔥 Heatmap Data: http://localhost:${PORT}/api/heatmap-data/{field}/{lod}`);
   console.log(`📈 Field Stats: http://localhost:${PORT}/api/field-stats/{field}`);
