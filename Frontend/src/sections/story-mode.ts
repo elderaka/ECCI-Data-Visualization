@@ -212,7 +212,7 @@ export class StoryMode {
     
     const content = this.resolveProperty(section.content);
     
-    content.forEach((item, itemIndex) => {
+    content.forEach((item) => {
       const card = document.createElement('div');
       card.className = 'stack-card';
       card.innerHTML = this.renderContentItem(item);
