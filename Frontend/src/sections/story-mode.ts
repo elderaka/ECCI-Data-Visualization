@@ -816,7 +816,11 @@ export class StoryMode {
     const plotEl = document.getElementById(plotId);
     if (!plotEl) return;
     
-    const endpoint = vizPanel.dataEndpoint || '';
+    // Resolve dataEndpoint to string (it can be a string or function)
+    const endpointValue = vizPanel.dataEndpoint;
+    const endpoint = typeof endpointValue === 'function' 
+      ? endpointValue(this.selectedArea)
+      : (endpointValue || '');
     const storyKey = section.storyKey || section.id;
     
     try {
@@ -1085,7 +1089,6 @@ export class StoryMode {
       // Comparison chart (area vs national average)
       if (viz.type === 'comparison' && endpoint.includes('/api/area-data/')) {
         try {
-          const areaId = endpoint.split('/').pop();
           const response = await fetch(`http://localhost:3000${endpoint}`);
           
           let areaData: any = null;
@@ -1352,7 +1355,6 @@ export class StoryMode {
     
     if (index < 0) return;
     
-    const oldIndex = this.currentSection;
     this.currentSection = index;
     const section = this.currentSections[index];
     
