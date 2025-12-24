@@ -951,8 +951,11 @@ export class StoryMode {
    * Get visualization data from real API endpoints
    */
   private async getVisualizationData(viz: VizConfig): Promise<any[]> {
-    // Parse the data endpoint to determine what data to fetch
-    const endpoint = viz.dataEndpoint || '';
+    // Resolve dataEndpoint to string (it can be a string or function)
+    const endpointValue = viz.dataEndpoint;
+    const endpoint = typeof endpointValue === 'function' 
+      ? endpointValue(this.selectedArea)
+      : (endpointValue || '');
     
     try {
       // Area-specific timeseries (when viewing a specific area)
